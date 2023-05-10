@@ -1,0 +1,108 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "vaultwarden.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: vaultwarden
+    annotations:
+      argocd.argoproj.io/sync-options: Delete=false
+spec:
+  serviceName: vaultwarden
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vaultwarden
+      app.kubernetes.io/component: vaultwarden
+  template:
+    metadata:
+      labels:
+        app: vaultwarden
+        app.kubernetes.io/component: vaultwarden
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha1sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secrets.yaml") . | sha1sum }}
+    spec:
+      {{- if .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.affinity }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.tolerations }}
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      {{- end }}
+      initContainers:
+        {{- if .Values.initContainers }}
+        {{- toYaml .Values.initContainers | nindent 8 }}
+        {{- end }}
+      containers:
+        - name: vaultwarden
+          {{- if .Values.image.registry }}
+          image: {{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          {{- else }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          {{- end }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "vaultwarden.fullname" . }}
+          env:
+          {{- if .Values.smtp.username }}
+            - name: SMTP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vaultwarden.fullname" . }}
+                  key: SMTP_USERNAME
+            {{- end }}
+            {{- if .Values.smtp.password }}
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vaultwarden.fullname" . }}
+                  key: SMTP_PASSWORD
+            {{- end }}
+            {{- if .Values.adminToken.enabled }}
+            - name: ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vaultwarden.fullname" . }}
+                  key: ADMIN_TOKEN
+            {{- else }}
+            - name: DISABLE_ADMIN_TOKEN
+              value: "true"
+             {{- end }}
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+            - containerPort: {{ .Values.websocket.port }}
+              name: websocket
+              protocol: TCP
+          {{- if .Values.storage.enabled }}
+          volumeMounts:
+            - name: vaultwarden-data
+              mountPath: {{ .Values.storage.dataDir }}
+          {{- end }}
+          resources:
+            limits:
+              cpu: 300m
+              memory: 1Gi
+            requests:
+              cpu: 50m
+              memory: 256Mi
+        {{- if .Values.sidecars }}
+        {{- toYaml .Values.sidecars | nindent 8 }}
+        {{- end }}
+      {{- if .Values.serviceAccount.create }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      {{- end }}
+      {{- if .Values.storage.enabled }}
+      volumes:
+        - name: vaultwarden-data
+          persistentVolumeClaim:
+            claimName: vaultwarden-data
+      {{- end }}
