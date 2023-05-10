@@ -5,6 +5,7 @@ keywords:
   - Rust
   - vaultwarden
 sources:
+  - https://github.com/XDavidT/VaultWarden-helm
   - https://github.com/guerzon/vaultwarden
   - https://github.com/dani-garcia/vaultwarden
 appVersion: 1.28.1
