@@ -226,8 +226,7 @@ Detailed configuration options can be found in the [Storage Configuration](#stor
 
 | Name                    | Description                                                                     | Value               |
 | ----------------------- | ------------------------------------------------------------------------------- | ------------------- |
-| `adminToken.enabled`    | Enable or disable the admin panel                                               | `false` |
-
+| `adminToken.enabled`    | Enable or disable the admin panel                                               | `false`             |
 | `adminToken.token`      | The admin token used for /admin                                                 | `R@ndomToken$tring` |
 | `signupsAllowed`        | By default, anyone who can access your instance can register for a new account. | `true`              |
 | `invitationsAllowed`    | Even when registration is disabled, organization administrators or owners can   | `true`              |
